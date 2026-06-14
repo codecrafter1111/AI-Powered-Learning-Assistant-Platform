@@ -1,0 +1,234 @@
+import Quiz from "../models/Quiz.js";
+
+
+
+// @desc    Get all Quizees
+// @route   GET /api/quizzes/:documentId
+// @access  Private
+export const getQuizzes = async (req, res, next) => {
+    try {
+        const quizzes = await Quiz.find({
+            userId: req.user._id,
+            documentId: req.params.documentId
+        }).populate("documentId", "title fileName")
+            .sort({ createdAt: -1 })
+
+        res.status(200).json({
+            success: true,
+            data: quizzes,
+            count: quizzes.length,
+        });
+    } catch (error) {
+        next(error)
+    }
+}
+
+
+// @desc    Get  Quizees by id
+// @route   GET /api/quizzes/quiz/:id
+// @access  Private
+export const getQuizById = async (req, res, next) => {
+    try {
+        const quiz = await Quiz.findOne({
+            _id: req.params.id,
+            userId: req.user._id,
+        })
+
+        if (!quiz) {
+            return res.status(404).json({
+                success: false,
+                error: "Quiz not found",
+                statusCode: 404
+            })
+        }
+
+        res.status(200).json({
+            success: true,
+            data: quiz
+        });
+    } catch (error) {
+        next(error)
+    }
+}
+
+
+
+
+// @desc    Submit  Quizees
+// @route   POST /api/quizzes/:id/submit
+// @access  Private
+export const submitQuiz = async (req, res, next) => {
+    try {
+        const { answer } = req.body
+
+        if (!Array.isArray(answer)) {
+            return res.status(400).json({
+                success: false,
+                error: "Please provide answers array",
+                statusCod: 400
+            })
+        }
+
+
+        const quiz = await Quiz.findOne({
+            _id: req.params.id,
+            userId: req.user._id
+        })
+
+        if (!quiz) {
+            return res.status(404).json({
+                success: false,
+                error: "Quiz not found",
+                statusCode: 404
+            })
+        }
+
+        if (quiz.completedAt) {
+            return res.status(404).json({
+                success: false,
+                error: "Quiz already completed",
+                statusCode: 404
+            })
+        }
+
+        //Process answers
+        let correctCount = 0;
+        const userAnswers = []
+
+        answer.forEach(answer => {
+            const { questionIndex, selectedAnswer } = answer
+            if (questionIndex < quiz.questions.length) {
+                const question = quiz.questions[questionIndex]
+                const isCorrect = selectedAnswer === question.correctAnswer;
+
+                if (isCorrect) correctCount++;
+
+                userAnswers.push({
+                    questionIndex,
+                    selectedAnswer,
+                    isCorrect,
+                    answeredAt: new Date()
+                })
+            }
+        })
+
+        //Calculate score
+        const score = Math.round((correctCount / quiz.totalQuestions) * 100)
+
+        //Quiz Update
+        quiz.userAnswer = userAnswers,
+            quiz.score = score,
+            quiz.completedAt = new Date()
+
+        await quiz.save()
+
+        res.status(200).json({
+            success: true,
+            data: {
+                quizId: quiz._id,
+                score,
+                correctCount,
+                totalQuestions: quiz.totalQuestions,
+                percentage: score,
+                userAnswers
+            },
+            message: "Quiz submitted successfully"
+        });
+
+
+
+    } catch (error) {
+        next(error)
+    }
+}
+
+
+
+// @desc    Get  Quizees Result
+// @route   GET /api/quizzes/:id/result
+// @access  Private
+export const getQuizResults = async (req, res, next) => {
+    try {
+
+        const quiz = await Quiz.findOne({ _id: req.params.id, userId: req.user._id }).populate("documentId", "title")
+
+        if (!quiz) {
+            return res.status(404).json({
+                success: false,
+                error: "Quiz not found",
+                statusCode: 404
+            })
+        }
+
+        if (!quiz.completedAt) {
+            return res.status(400).json({
+                success: false,
+                error: "Quiz not completed yet",
+                statusCode: 400
+            })
+        }
+
+        //Building detailed Result
+        const detailedResults = quiz.questions.map((question, index) => {
+            const userAnswer = quiz.userAnswer.find(a => a.questionIndex === index);
+            return {
+                questionIndex: index,
+                question: question.question,
+                options: question.options,
+                correctAnswer: question.correctAnswer,
+                selectedAnswer: userAnswer?.selectedAnswers || '',
+                isCorrect: userAnswer?.isCorrect || false,
+                explanation: question.explanation
+            }
+        })
+
+        return res.status(200).json({
+            success: true,
+            data: {
+                id: quiz._id,
+                title: quiz.title,
+                document: quiz.documentId,
+                score: quiz.score,
+                totalQuestions: quiz.totalQuestions,
+                completedAt: quiz.completedAt
+            },
+            result: detailedResults,
+            statusCode: 200
+        })
+    } catch (error) {
+        next(error)
+    }
+}
+
+
+
+
+// @desc    Delete Quizees
+// @route   DELETE /api/quizzes/:id
+// @access  Private
+export const deleteQuiz = async (req, res, next) => {
+    try {
+        const quiz = await Quiz.findOne({ _id: req.params.id, userId: req.user._id }).populate("documentId", "title")
+
+        if (!quiz) {
+            return res.status(404).json({
+                success: false,
+                error: "Quiz not found",
+                statusCode: 404
+            })
+        }
+
+        await quiz.deleteOne()
+        res.status(200).json({
+                success: false,
+                error: "Quiz Deleted Successfully",
+                statusCode: 200
+            })
+    } catch (error) {
+        next(error)
+    }
+}
+
+
+
+
