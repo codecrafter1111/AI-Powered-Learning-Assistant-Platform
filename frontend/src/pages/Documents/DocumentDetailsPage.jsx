@@ -6,7 +6,7 @@ import toast from "react-hot-toast"
 import { ArrowLeft, ExternalLink } from "lucide-react"
 import { PageHeader } from '../../components/common/PageHeader'
 import { Tab } from '../../components/common/Tab'
-import { ChatInterface } from '../../components/Chat/ChatInterface'
+import { ChatInterface } from '../../components/chat/ChatInterface'
 import { AIAction } from '../../components/ai/AIAction'
 
 
