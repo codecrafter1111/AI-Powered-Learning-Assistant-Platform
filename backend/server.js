@@ -28,11 +28,14 @@ connectDB();
 
 // Middleware for CORS (cross-origin resource sharing),  
 app.use(cors({
-    origin: "*",
-    credentials: true,
-    methods: ["GET", "POST", "PUT", "DELETE", "PATCH"],
-    allowedHeaders: ["Content-Type", "Authorization"]
-}))
+  origin: [
+    "http://localhost:5173",
+    "https://codecrafter1111.github.io"
+  ],
+  credentials: true,
+  methods: ["GET", "POST", "PUT", "DELETE", "PATCH"],
+  allowedHeaders: ["Content-Type", "Authorization"]
+}));
 
 // JSON parsing
 app.use(express.json())
@@ -54,6 +57,21 @@ app.use("/api/progress" , progressRoute)
 
 // Express Error Handling Middleware
 app.use(errorHandler);
+
+
+app.get("/", (req, res) => {
+res.status(200).json({
+    success: true,
+    message: "AI Learning Assistant Backend is running 🚀",
+});
+});
+
+app.get("/health", (req, res) => {
+res.status(200).json({
+    success: true,
+    status: "OK",
+});
+});
 
 
 
