@@ -10,4 +10,4 @@ COPY . .
 
 EXPOSE 8000
 
-CMD ["node", "server.js"]git push
+CMD ["node", "server.js"]
